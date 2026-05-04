@@ -753,5 +753,15 @@
     "prompt": "instruction",
     "response": "output"
   }
+},
+  "underwater_dpo": {
+  "file_name": "under_acoustic_data/dpo_underwater.json",
+  "formatting": "sharegpt",
+  "ranking": true,
+  "columns": {
+    "prompt": "instruction",
+    "chosen": "chosen",
+    "rejected": "rejected"
+  }
 }
 }
