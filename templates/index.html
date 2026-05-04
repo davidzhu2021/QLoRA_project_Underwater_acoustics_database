@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>水声领域问答系统</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f5; display: flex; justify-content: center; align-items: center; height: 100vh; }
+    .container { width: 720px; height: 85vh; background: white; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); display: flex; flex-direction: column; overflow: hidden; }
+    .header { padding: 16px 20px; border-bottom: 1px solid #eee; }
+    .header h1 { font-size: 16px; font-weight: 600; color: #1a1a1a; }
+    .header p { font-size: 12px; color: #888; margin-top: 2px; }
+    .messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+    .msg { display: flex; gap: 10px; align-items: flex-start; }
+    .msg.user { flex-direction: row-reverse; }
+    .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+    .avatar.bot { background: #e8f5ee; color: #0f6e56; }
+    .avatar.user { background: #e8eef8; color: #1850a5; }
+    .bubble { max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.65; }
+    .msg.bot .bubble { background: #f7f7f7; color: #1a1a1a; border-radius: 4px 12px 12px 12px; }
+    .msg.user .bubble { background: #1D9E75; color: white; border-radius: 12px 4px 12px 12px; }
+    .typing .bubble { color: #888; font-style: italic; }
+    .suggestions { padding: 0 20px 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .sug-btn { font-size: 12px; padding: 5px 12px; border: 1px solid #ddd; border-radius: 20px; background: white; cursor: pointer; color: #444; transition: all 0.15s; }
+    .sug-btn:hover { background: #e8f5ee; border-color: #5dcaa5; color: #0f6e56; }
+    .input-row { padding: 12px 16px; border-top: 1px solid #eee; display: flex; gap: 8px; }
+    .input-row input { flex: 1; padding: 10px 14px; border: 1px solid #ddd; border-radius: 24px; font-size: 14px; outline: none; transition: border 0.15s; }
+    .input-row input:focus { border-color: #1D9E75; }
+    .input-row button { padding: 10px 20px; background: #1D9E75; color: white; border: none; border-radius: 24px; font-size: 14px; cursor: pointer; transition: background 0.15s; }
+    .input-row button:hover { background: #0f6e56; }
+    .input-row button:disabled { background: #ccc; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>水声领域问答助手</h1>
+    <p>基于 Qwen3-0.6B · QLoRA SFT+DPO 微调</p>
+  </div>
+
+  <div class="messages" id="messages">
+    <div class="msg bot">
+      <div class="avatar bot">AI</div>
+      <div class="bubble">你好！我是水声领域专业问答助手，可以回答声呐原理、水声传播、目标探测等相关问题。</div>
+    </div>
+  </div>
+
+  <div class="suggestions">
+    <button class="sug-btn" onclick="sendSuggestion(this)">主动声呐和被动声呐有什么区别？</button>
+    <button class="sug-btn" onclick="sendSuggestion(this)">什么是多途效应？</button>
+    <button class="sug-btn" onclick="sendSuggestion(this)">匹配滤波的原理是什么？</button>
+    <button class="sug-btn" onclick="sendSuggestion(this)">什么是混响？</button>
+  </div>
+
+  <div class="input-row">
+    <input type="text" id="input" placeholder="输入水声领域问题..." onkeydown="if(event.key==='Enter') sendMsg()" />
+    <button id="sendBtn" onclick="sendMsg()">发送</button>
+  </div>
+</div>
+
+<script>
+  const messages = document.getElementById('messages');
+  const input = document.getElementById('input');
+  const sendBtn = document.getElementById('sendBtn');
+
+  function addMsg(role, text) {
+    const div = document.createElement('div');
+    div.className = `msg ${role}`;
+    div.innerHTML = `
+      <div class="avatar ${role}">${role === 'bot' ? 'AI' : '我'}</div>
+      <div class="bubble">${text}</div>
+    `;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+    return div;
+  }
+
+  function sendSuggestion(btn) {
+    input.value = btn.textContent;
+    sendMsg();
+  }
+
+  async function sendMsg() {
+    const text = input.value.trim();
+    if (!text) return;
+
+    addMsg('user', text);
+    input.value = '';
+    sendBtn.disabled = true;
+
+    const typing = addMsg('bot typing', '正在思考中...');
+
+    try {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text })
+      });
+      const data = await res.json();
+      typing.querySelector('.bubble').textContent = data.response;
+      typing.classList.remove('typing');
+    } catch (e) {
+      typing.querySelector('.bubble').textContent = '请求失败，请检查后端服务是否正常运行。';
+    }
+
+    sendBtn.disabled = false;
+    input.focus();
+  }
+</script>
+</body>
+</html>
