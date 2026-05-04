@@ -1,6 +1,6 @@
 # 基于Qwen3-0.6B的水声领域问答微调系统
 
-> 面向水声专业知识问答场景，通过 SFT + DPO 对齐提升模型领域回答质量与规范性。
+> 面向水声专业知识问答场景，通过 SFT + DPO 对齐提升模型领域回答质量与规范性，支持 Web 前端交互访问。
 
 ---
 
@@ -9,7 +9,6 @@
 实验室新加入的师弟师妹对水声领域知识尚不熟悉，在出海实验或项目开发过程中，面对声呐参数设置、水声传播现象等专业问题时缺乏快速查询的工具。通用大模型（如 ChatGPT）对水声这类细分领域的回答质量参差不齐，存在误导风险。
 
 本项目在开源基座模型 Qwen3-0.6B 上进行领域微调，打造一个专注于水声知识的专业问答助手，供实验室成员以及各位水声科研爱好者在出海等网络受限场景下离线使用。
-
 ---
 
 ## 技术栈
@@ -18,6 +17,7 @@
 - **微调框架**：LLaMA Factory
 - **微调方法**：QLoRA（4bit 量化 + LoRA）/ SFT / DPO
 - **基座模型**：Qwen3-0.6B
+- **后端服务**：Flask
 - **训练硬件**：NVIDIA RTX 3050（4GB 显存）
 
 ---
@@ -26,10 +26,13 @@
 
 ```
 LLaMA-Factory/
+├── app.py                       # Flask 后端服务
 ├── sft_config.yaml              # SFT 训练配置
 ├── dpo_config.yaml              # DPO 训练配置
 ├── eval_model.py                # 评估脚本（BLEU、合规率等）
 ├── test.py                      # 快速推理测试
+├── templates/
+│   └── index.html               # 前端聊天页面
 ├── data/
 │   ├── under_acoustic_data/
 │   │   └── dataset_underwater.json   # 5000 条 SFT 训练数据
@@ -79,28 +82,40 @@ LLaMA-Factory/
 
 ## 快速开始
 
-### 环境安装
+### 1. 环境安装
 
 ```bash
 git clone https://github.com/hiyouga/LLaMA-Factory.git
 cd LLaMA-Factory
 pip install -e .
-pip install bitsandbytes
+pip install bitsandbytes flask flask-cors
 ```
 
-### SFT 训练
+### 2. SFT 训练
 
 ```bash
 llamafactory-cli train sft_config.yaml
 ```
 
-### DPO 训练
+### 3. DPO 训练
 
 ```bash
 llamafactory-cli train dpo_config.yaml
 ```
 
-### 交互式对话（推理）
+### 4. 启动 Web 服务
+
+```bash
+python app.py
+```
+
+启动后浏览器访问：
+
+```
+http://localhost:5000
+```
+
+### 5. 命令行推理（可选）
 
 ```bash
 llamafactory-cli chat \
@@ -110,7 +125,7 @@ llamafactory-cli chat \
   --finetuning_type lora
 ```
 
-### 评估
+### 6. 评估
 
 ```bash
 python eval_model.py
@@ -136,6 +151,22 @@ gradient_accumulation_steps: 16  # 等效 batch_size = 16
 
 ---
 
+## 系统架构
+
+```
+用户浏览器
+    ↓ HTTP POST /chat
+Flask 后端（app.py）
+    ↓ 推理
+Qwen3-0.6B + DPO LoRA 权重
+    ↓ 生成回答
+Flask 后端
+    ↓ JSON 响应
+用户浏览器（index.html 渲染）
+```
+
+---
+
 ## 评估指标
 
 | 指标 | 评估方法 |
@@ -152,6 +183,7 @@ gradient_accumulation_steps: 16  # 等效 batch_size = 16
 - 模型参数量仅 0.6B，回答深度有限；可替换为 7B 基座模型提升效果
 - DPO 数据量较少，对齐效果有提升空间；扩充至 200 条以上效果会更显著
 - 当前评估为单人人工评估，存在主观偏差；后续可引入多评估者 + Cohen's Kappa 一致性检验
+- 前端可进一步支持流式输出（streaming），提升用户体验
 - 可结合 RAG 方案，在知识库扩充时提供更好的可扩展性
 
 ---
