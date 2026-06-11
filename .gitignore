@@ -1,0 +1,8 @@
+# Local model/training artifacts
+output/qwen3_4b_sft/
+output/qwen3_4b_run_logs/
+output/remote_qwen3_4b_artifacts/
+
+# Python cache
+__pycache__/
+*.py[cod]

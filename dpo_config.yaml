@@ -1,26 +1,34 @@
-model_name_or_path: C:/Users/98689/.cache/modelscope/hub/models/Qwen/Qwen3-0___6B
-adapter_name_or_path: ./output/qwen3_sft
+# Optional second-stage DPO profile. Do not run until preference data is expanded.
+model_name_or_path: D:/model_cache/modelscope/hub/models/Qwen/Qwen3-4B
+adapter_name_or_path: ./output/qwen3_4b_sft
 stage: dpo
 do_train: true
 finetuning_type: lora
 
 dataset: underwater_dpo
+dataset_dir: ./data
 template: qwen
 cutoff_len: 1024
 
 pref_beta: 0.1
 pref_loss: sigmoid
 
-output_dir: ./output/qwen3_dpo
+output_dir: ./output/qwen3_4b_dpo
+overwrite_output_dir: true
 num_train_epochs: 1
-per_device_train_batch_size: 1
+per_device_train_batch_size: 2
 gradient_accumulation_steps: 8
-learning_rate: 5.0e-5
+learning_rate: 2.0e-5
 lr_scheduler_type: cosine
+warmup_ratio: 0.03
+bf16: true
 
-quantization_bit: 4
-lora_rank: 8
-lora_alpha: 16
-lora_target: q_proj,v_proj
-gradient_checkpointing: true
-optim: adamw_8bit
+lora_rank: 32
+lora_alpha: 64
+lora_dropout: 0.05
+lora_target: all
+gradient_checkpointing: false
+optim: adamw_torch
+logging_steps: 10
+save_steps: 200
+

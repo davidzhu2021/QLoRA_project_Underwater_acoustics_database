@@ -1,30 +1,40 @@
-# sft_config.yaml
-model_name_or_path: C:/Users/98689/.cache/modelscope/hub/models/Qwen/Qwen3-0___6B
+# SFT profile for RTX 4090 24GB: Qwen3-4B + bf16 LoRA.
+model_name_or_path: D:/model_cache/modelscope/hub/models/Qwen/Qwen3-4B
 stage: sft
 do_train: true
 finetuning_type: lora
 
-# QLoRA核心参数
-quantization_bit: 4        # 4bit量化，显存从6G→3G的关键
-lora_rank: 8               # rank=8
-lora_alpha: 16
-lora_target: q_proj,v_proj
-
-dataset: underwater_acoustics  # 数据集名
+dataset: underwater_acoustics
+dataset_dir: ./data
 template: qwen
-cutoff_len: 512
+cutoff_len: 1024
 max_samples: 5000
-max_grad_norm: 1.0
-# 训练参数
-output_dir: ./output/qwen3_sft
+preprocessing_num_workers: 4
+
+# Quality-oriented LoRA. Do not use 4-bit quantization for this 4090 profile.
+lora_rank: 32
+lora_alpha: 64
+lora_dropout: 0.05
+lora_target: all
+
+output_dir: ./output/qwen3_4b_sft
+overwrite_output_dir: true
 num_train_epochs: 3
-per_device_train_batch_size: 1
-gradient_accumulation_steps: 16
-learning_rate: 1.0e-4
+per_device_train_batch_size: 2
+gradient_accumulation_steps: 8
+learning_rate: 5.0e-5
 lr_scheduler_type: cosine
-gradient_checkpointing: true         # 用时间换显存，速度变慢但省显存
-optim: adamw_8bit                    # 8bit优化器，省显存
-# 评估
+warmup_ratio: 0.03
+max_grad_norm: 1.0
+bf16: true
+gradient_checkpointing: false
+optim: adamw_torch
+
+# Keep validation metrics; train_loss alone is not enough for hallucination work.
 val_size: 0.1
+eval_strategy: steps
 eval_steps: 100
 save_steps: 500
+logging_steps: 10
+plot_loss: true
+
